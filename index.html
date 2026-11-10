@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!doctype html>
 <html lang="it">
 <head>
@@ -215,6 +216,8 @@ select { min-height: 42px; padding: 0 10px; background: var(--field); border: 1p
 .start { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--surface) 94%, transparent); border-radius: 14px; z-index: 3; }
 .start-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 20px 28px; text-align: center; max-width: min(92%, 460px); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .start-card p { margin: 0; color: var(--muted); }
+.seg.lv5 { flex-wrap: wrap; }
+.seg.lv5 label { flex: 1 1 30%; }
 .seg.tight span { padding: 0 4px; font-size: .92rem; }
 .sound-row { display: flex; gap: 8px; align-items: center; }
 .sound-row select { flex: 1; min-width: 0; }
@@ -294,8 +297,10 @@ select { min-height: 42px; padding: 0 10px; background: var(--field); border: 1p
       </div>
       <div class="group">
         <span class="lab" id="labLevel">Livello</span>
-        <div class="seg tight" role="radiogroup" aria-labelledby="labLevel">
+        <div class="seg tight lv5" role="radiogroup" aria-labelledby="labLevel">
           <label><input type="radio" name="level" value="beg"><span>Principiante</span></label>
+          <label><input type="radio" name="level" value="nov"><span>Novizio</span></label>
+          <label><input type="radio" name="level" value="sen"><span>Senior</span></label>
           <label><input type="radio" name="level" value="exp"><span>Esperto</span></label>
           <label><input type="radio" name="level" value="cha"><span>Campione</span></label>
         </div>
@@ -437,21 +442,23 @@ const G = {"whole":{"d":"M196 190Q265 190 313.0 163.5Q361 137 361 88Q361 41 314.
 const SC = 0.07;                                   // scala dei glifi musicali
 const SIGS = { '4/4': 4, '3/4': 3, '2/4': 2 };
 const LV = {
-  beg: { label: 'Principiante', bars: 2, adv: false, tol: 0.30, txt: '2 battute, solo le figure base: semibreve, minima col punto, minima, semiminima e relative pause.' },
-  exp: { label: 'Esperto',      bars: 4, adv: true,  tol: 0.22, txt: '4 battute, con anche semiminima col punto, crome e relative pause. Tolleranza sul tempo più stretta.' },
-  cha: { label: 'Campione',     bars: 8, adv: true,  tol: 0.15, txt: '8 battute con tutte le figure e tolleranza stretta: serve davvero orecchio e precisione.' }
+  beg: { label: 'Principiante', bars: 2, adv: 0, tol: 0.30, txt: '2 battute, solo le figure base: semibreve, minima col punto, minima, semiminima e relative pause.' },
+  nov: { label: 'Novizio',      bars: 2, adv: 1, tol: 0.28, txt: '2 battute: figure base più le crome, sempre a coppie e senza pause di croma.' },
+  sen: { label: 'Senior',       bars: 2, adv: 2, tol: 0.25, txt: '2 battute: come Novizio, ma con le pause di croma in qualsiasi posizione.' },
+  exp: { label: 'Esperto',      bars: 4, adv: 3, tol: 0.22, txt: '4 battute, con anche semiminima col punto, crome e relative pause. Tolleranza sul tempo più stretta.' },
+  cha: { label: 'Campione',     bars: 8, adv: 3, tol: 0.15, txt: '8 battute con tutte le figure e tolleranza stretta: serve davvero orecchio e precisione.' }
 };
 const TABS = {
-  echo: 'Ascolta la sequenza ritmica (la scrittura resta nascosta), poi ripetila toccando il pulsante a tempo con il metronomo.',
+  echo: 'Ascolta la sequenza ritmica (puoi nascondere la scrittura dalle impostazioni), poi ripetila toccando il pulsante a tempo con il metronomo.',
   read: 'Leggi la sequenza scritta e battila toccando il pulsante: dopo il conteggio il cursore ti guida battuta dopo battuta.',
   pick: 'Ascolta la sequenza e scegli quale, tra le tre scritte, è quella che hai sentito. Solo una è giusta.'
 };
 const PACE = { calm: 1.5, normal: 1, quick: 0.7 };
 const PACE_LABEL = { calm: 'Tranquillo', normal: 'Normale', quick: 'Veloce' };
-const DEFAULTS = { tab: 'echo', mode: 'train', level: 'beg', sig: '4/4', bpm: 70, metro: true, showScore: false, battery: 3, pace: 'normal', offset: 40, durScore: false, strict: 'norm', sound: 'epiano', panel: !COMPACT.matches };
+const DEFAULTS = { tab: 'echo', mode: 'train', level: 'beg', sig: '4/4', bpm: 70, metro: true, showScore: true, battery: 3, pace: 'normal', offset: 40, durScore: false, strict: 'norm', sound: 'epiano', panel: !COMPACT.matches };
 const STORE = 'allenatore-ritmico-v1', RECORDS = 'allenatore-ritmico-record-v1';
 let settings = Object.assign({}, DEFAULTS);
-try { const sv = JSON.parse(localStorage.getItem(STORE) || 'null'); if (sv && typeof sv === 'object') Object.assign(settings, sv); } catch (e) {}
+try { const sv = JSON.parse(localStorage.getItem(STORE) || 'null'); if (sv && typeof sv === 'object') { Object.assign(settings, sv); if (sv.v !== 2) settings.showScore = true; } } catch (e) {}
 function sane() {
   const s = settings;
   if (!TABS[s.tab]) s.tab = 'echo';
@@ -464,6 +471,7 @@ function sane() {
   s.offset = Math.max(-100, Math.min(250, Math.round(+s.offset || 0)));
   if (!INSTR[s.sound]) s.sound = 'epiano';
   if (!['lax', 'norm', 'tight'].includes(s.strict)) s.strict = 'norm';
+  s.v = 2;
   s.durScore = !!s.durScore; s.metro = !!s.metro; s.showScore = !!s.showScore; s.panel = !!s.panel;
 }
 function save() { try { localStorage.setItem(STORE, JSON.stringify(settings)); } catch (e) {} }
@@ -482,8 +490,9 @@ function tokenDefs(bpb, adv) {
   const hs = bpb === 4 ? [0, 2] : bpb === 3 ? [0, 1] : [0];
   add(2, hs, 3, [['h', 1]]); add(2, hs, 1, [['h', 0]]);
   add(1, ints, 5, [['q', 1]]); add(1, ints, 1.6, [['q', 0]]);
-  if (adv) {
-    add(1, ints, 3, [['e', 1], ['e', 1]]); add(1, ints, 1, [['e', 1], ['e', 0]]); add(1, ints, 1, [['e', 0], ['e', 1]]);
+  if (adv >= 1) add(1, ints, 3, [['e', 1], ['e', 1]]);
+  if (adv >= 2) { add(1, ints, 1, [['e', 1], ['e', 0]]); add(1, ints, 1, [['e', 0], ['e', 1]]); }
+  if (adv >= 3) {
     add(2, ints, 2.4, [['dq', 1], ['e', 1]]); add(2, ints, 0.8, [['dq', 1], ['e', 0]]); add(2, ints, 0.8, [['dq', 0], ['e', 1]]);
   }
   return T;
@@ -1254,3 +1263,5 @@ restart();
 
 </body>
 </html>
+
+</body></html>
